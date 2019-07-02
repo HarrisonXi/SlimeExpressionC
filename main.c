@@ -10,5 +10,7 @@
 #import "SLMExpression.h"
 
 int main(void) {
+    printf("1+2=%d\n", slm_eval("1+2"));
+    printf("1-2+3=%d\n", slm_eval("1-2+3"));
     return 0;
 }
