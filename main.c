@@ -9,8 +9,16 @@
 #import <stdio.h>
 #import "SLMExpression.h"
 
-int main(void) {
-    printf("1+2=%d\n", slm_eval("1+2"));
-    printf("1-2+3=%d\n", slm_eval("1-2+3"));
+void test(const char *expStr) {
+    printf("%s=%d\n", expStr, slm_eval(expStr));
+}
+
+int main(int argc, const char * argv[]) {
+    test("1+2");
+    test("3-2+1");
+    test("2*3");
+    test("3+4/2-1");
+    test("1*2+3%2");
+    test("2*2*2-3");
     return 0;
 }

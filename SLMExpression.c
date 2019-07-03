@@ -8,29 +8,56 @@
 
 #include "SLMExpression.h"
 
-int number(const char *expStr)
+int number(const char **expStr)
 {
     /*
      number = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
      */
-    return *expStr - '0';
+    int result = **expStr - '0';
+    (*expStr)++;
+    return result;
 }
 
-int expr(const char *expStr)
+int term(const char **expStr)
 {
     /*
-     expr  = number expr1
-     expr1 = '+' number expr1
-           | '-' number expr1
+     term  = number term1
+     term1 = '*' number term1
+           | '/' number term1
+           | '%' number term1
            | null
      */
-    int result = number(expStr++);
-    while (*expStr == '+' || *expStr == '-') {
-        char op = *expStr; expStr++;
-        if (op == '+') {
-            result += number(expStr++);
+    int result = number(expStr);
+    while (**expStr == '*' || **expStr == '/' || **expStr == '%') {
+        char op = **expStr;
+        (*expStr)++;
+        if (op == '*') {
+            result *= number(expStr);
+        } else if (op == '/') {
+            result /= number(expStr);
         } else {
-            result -= number(expStr++);
+            result %= number(expStr);
+        }
+    }
+    return result;
+}
+
+int expr(const char **expStr)
+{
+    /*
+     expr  = term expr1
+     expr1 = '+' term expr1
+           | '-' term expr1
+           | null
+     */
+    int result = term(expStr);
+    while (**expStr == '+' || **expStr == '-') {
+        char op = **expStr;
+        (*expStr)++;
+        if (op == '+') {
+            result += term(expStr);
+        } else {
+            result -= term(expStr);
         }
     }
     return result;
@@ -38,5 +65,5 @@ int expr(const char *expStr)
 
 int slm_eval(const char *expStr)
 {
-    return expr(expStr);
+    return expr(&expStr);
 }
