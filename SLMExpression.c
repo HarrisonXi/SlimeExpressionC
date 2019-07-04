@@ -8,6 +8,8 @@
 
 #include "SLMExpression.h"
 
+int expr(const char **expStr);
+
 int number(const char **expStr)
 {
     /*
@@ -18,25 +20,44 @@ int number(const char **expStr)
     return result;
 }
 
+int factor(const char **expStr)
+{
+    /*
+     factor = number
+            | '(' expr ')'
+    */
+    int result;
+    if (**expStr == '(') {
+        (*expStr)++;
+        result = expr(expStr);
+        if (**expStr == ')') {
+            (*expStr)++;
+        }
+    } else {
+        result = number(expStr);
+    }
+    return result;
+}
+
 int term(const char **expStr)
 {
     /*
-     term  = number term1
-     term1 = '*' number term1
-           | '/' number term1
-           | '%' number term1
+     term  = factor term1
+     term1 = '*' factor term1
+           | '/' factor term1
+           | '%' factor term1
            | null
      */
-    int result = number(expStr);
+    int result = factor(expStr);
     while (**expStr == '*' || **expStr == '/' || **expStr == '%') {
         char op = **expStr;
         (*expStr)++;
         if (op == '*') {
-            result *= number(expStr);
+            result *= factor(expStr);
         } else if (op == '/') {
-            result /= number(expStr);
+            result /= factor(expStr);
         } else {
-            result %= number(expStr);
+            result %= factor(expStr);
         }
     }
     return result;

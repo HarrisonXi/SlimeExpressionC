@@ -20,5 +20,8 @@ int main(int argc, const char * argv[]) {
     test("3+4/2-1");
     test("1*2+3%2");
     test("2*2*2-3");
+    test("(2+4)/3");
+    test("(1+2)*(2+2)");
+    test("(1+3*2)%3");
     return 0;
 }
