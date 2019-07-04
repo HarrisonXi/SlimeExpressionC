@@ -52,5 +52,7 @@ int main(int argc, const char * argv[]) {
     test("1%0");
     test("(2+3*4");
     test("1+2?");
+    test("2*-3");
+    test("1--2");
     return 0;
 }

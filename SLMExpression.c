@@ -21,13 +21,23 @@ int expr(slm_expr *e);
 int number(slm_expr *e)
 {
     /*
-     number = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+     number = '-' digit
+            | digit
+     digit  = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
      */
+    int hasMinus = 0;
+    if (*e->expStr == '-') {
+        (e->expStr)++;
+        hasMinus = 1;
+    }
     if (*e->expStr < '0' || *e->expStr > '9') {
         THROW(SLM_EXPRESSION_ERROR_TYPE_EXPECT_DIGIT);
     }
     int result = *e->expStr - '0';
     (e->expStr)++;
+    if (hasMinus) {
+        result *= -1;
+    }
     return result;
 }
 
