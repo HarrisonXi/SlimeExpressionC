@@ -8,38 +8,50 @@
 
 #include "SLMExpression.h"
 
-int expr(const char **expStr);
+typedef struct {
+    const char *expStr;
+    int errType;
+} slm_expr;
 
-int number(const char **expStr)
+int expr(slm_expr *e);
+
+#define TRY(func) func; if (e->errType) return 0;
+#define THROW(error) e->errType = error; return 0;
+
+int number(slm_expr *e)
 {
     /*
      number = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
      */
-    int result = **expStr - '0';
-    (*expStr)++;
+    if (*e->expStr < '0' || *e->expStr > '9') {
+        THROW(SLM_EXPRESSION_ERROR_TYPE_EXPECT_DIGIT);
+    }
+    int result = *e->expStr - '0';
+    (e->expStr)++;
     return result;
 }
 
-int factor(const char **expStr)
+int factor(slm_expr *e)
 {
     /*
      factor = number
             | '(' expr ')'
-    */
+     */
     int result;
-    if (**expStr == '(') {
-        (*expStr)++;
-        result = expr(expStr);
-        if (**expStr == ')') {
-            (*expStr)++;
+    if (*e->expStr == '(') {
+        (e->expStr)++;
+        result = TRY(expr(e));
+        if (*e->expStr != ')') {
+            THROW(SLM_EXPRESSION_ERROR_TYPE_EXPECT_CLOSE_PARENTHESIS);
         }
+        (e->expStr)++;
     } else {
-        result = number(expStr);
+        result = TRY(number(e));
     }
     return result;
 }
 
-int term(const char **expStr)
+int term(slm_expr *e)
 {
     /*
      term  = factor term1
@@ -48,22 +60,29 @@ int term(const char **expStr)
            | '%' factor term1
            | null
      */
-    int result = factor(expStr);
-    while (**expStr == '*' || **expStr == '/' || **expStr == '%') {
-        char op = **expStr;
-        (*expStr)++;
+    int result = TRY(factor(e));
+    while (*e->expStr == '*' || *e->expStr == '/' || *e->expStr == '%') {
+        char op = *e->expStr;
+        (e->expStr)++;
+        int f = TRY(factor(e));
         if (op == '*') {
-            result *= factor(expStr);
+            result *= f;
         } else if (op == '/') {
-            result /= factor(expStr);
+            if (f == 0) {
+                THROW(SLM_EXPRESSION_ERROR_TYPE_DIVISION_BY_ZERO);
+            }
+            result /= f;
         } else {
-            result %= factor(expStr);
+            if (f == 0) {
+                THROW(SLM_EXPRESSION_ERROR_TYPE_REMAINDER_BY_ZERO);
+            }
+            result %= f;
         }
     }
     return result;
 }
 
-int expr(const char **expStr)
+int expr(slm_expr *e)
 {
     /*
      expr  = term expr1
@@ -71,20 +90,32 @@ int expr(const char **expStr)
            | '-' term expr1
            | null
      */
-    int result = term(expStr);
-    while (**expStr == '+' || **expStr == '-') {
-        char op = **expStr;
-        (*expStr)++;
+    int result = TRY(term(e));
+    while (*e->expStr == '+' || *e->expStr == '-') {
+        char op = *e->expStr;
+        (e->expStr)++;
+        int t = TRY(term(e));
         if (op == '+') {
-            result += term(expStr);
+            result += t;
         } else {
-            result -= term(expStr);
+            result -= t;
         }
     }
     return result;
 }
 
-int slm_eval(const char *expStr)
+int slm_eval(const char *expStr, int *errType)
 {
-    return expr(&expStr);
+    slm_expr e;
+    e.expStr = expStr;
+    e.errType = SLM_EXPRESSION_ERROR_TYPE_NONE;
+    int result = expr(&e);
+    if (e.errType == 0 && *e.expStr != 0) {
+        e.errType = SLM_EXPRESSION_ERROR_TYPE_EXPECT_END;
+        result = 0;
+    }
+    if (errType) {
+        *errType = e.errType;
+    }
+    return result;
 }
