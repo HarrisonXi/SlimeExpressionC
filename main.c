@@ -13,22 +13,22 @@ void test(const char *expStr) {
     int errType;
     int result = slm_eval(expStr, &errType);
     switch (errType) {
-        case SLM_EXPRESSION_ERROR_TYPE_NONE:
+        case SLM_EXPRESSION_ERROR_NONE:
             printf("%s=%d\n", expStr, result);
             break;
-        case SLM_EXPRESSION_ERROR_TYPE_EXPECT_DIGIT:
+        case SLM_EXPRESSION_ERROR_EXPECT_DIGIT:
             printf("%s: error - expect digit\n", expStr);
             break;
-        case SLM_EXPRESSION_ERROR_TYPE_DIVISION_BY_ZERO:
+        case SLM_EXPRESSION_ERROR_DIVISION_BY_ZERO:
             printf("%s: error - division by zero\n", expStr);
             break;
-        case SLM_EXPRESSION_ERROR_TYPE_REMAINDER_BY_ZERO:
+        case SLM_EXPRESSION_ERROR_REMAINDER_BY_ZERO:
             printf("%s: error - remainder by zero\n", expStr);
             break;
-        case SLM_EXPRESSION_ERROR_TYPE_EXPECT_CLOSE_PARENTHESIS:
+        case SLM_EXPRESSION_ERROR_EXPECT_CLOSE_PARENTHESIS:
             printf("%s: error - expect ')'\n", expStr);
             break;
-        case SLM_EXPRESSION_ERROR_TYPE_EXPECT_END:
+        case SLM_EXPRESSION_ERROR_EXPECT_END:
             printf("%s: error - expect end\n", expStr);
             break;
         default:

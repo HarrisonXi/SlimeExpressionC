@@ -31,7 +31,7 @@ int number(slm_expr *e)
         hasMinus = 1;
     }
     if (*e->expStr < '0' || *e->expStr > '9') {
-        THROW(SLM_EXPRESSION_ERROR_TYPE_EXPECT_DIGIT);
+        THROW(SLM_EXPRESSION_ERROR_EXPECT_DIGIT);
     }
     int result = *e->expStr - '0';
     (e->expStr)++;
@@ -52,7 +52,7 @@ int factor(slm_expr *e)
         (e->expStr)++;
         result = TRY(expr(e));
         if (*e->expStr != ')') {
-            THROW(SLM_EXPRESSION_ERROR_TYPE_EXPECT_CLOSE_PARENTHESIS);
+            THROW(SLM_EXPRESSION_ERROR_EXPECT_CLOSE_PARENTHESIS);
         }
         (e->expStr)++;
     } else {
@@ -79,12 +79,12 @@ int term(slm_expr *e)
             result *= f;
         } else if (op == '/') {
             if (f == 0) {
-                THROW(SLM_EXPRESSION_ERROR_TYPE_DIVISION_BY_ZERO);
+                THROW(SLM_EXPRESSION_ERROR_DIVISION_BY_ZERO);
             }
             result /= f;
         } else {
             if (f == 0) {
-                THROW(SLM_EXPRESSION_ERROR_TYPE_REMAINDER_BY_ZERO);
+                THROW(SLM_EXPRESSION_ERROR_REMAINDER_BY_ZERO);
             }
             result %= f;
         }
@@ -118,10 +118,10 @@ int slm_eval(const char *expStr, int *errType)
 {
     slm_expr e;
     e.expStr = expStr;
-    e.errType = SLM_EXPRESSION_ERROR_TYPE_NONE;
+    e.errType = SLM_EXPRESSION_ERROR_NONE;
     int result = expr(&e);
     if (e.errType == 0 && *e.expStr != 0) {
-        e.errType = SLM_EXPRESSION_ERROR_TYPE_EXPECT_END;
+        e.errType = SLM_EXPRESSION_ERROR_EXPECT_END;
         result = 0;
     }
     if (errType) {
