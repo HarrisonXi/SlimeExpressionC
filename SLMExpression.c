@@ -27,6 +27,13 @@ enum {
 };
 
 typedef struct {
+    const char *name;
+    int argCount;
+    int (*func1)(int);
+    int (*func2)(int, int);
+} slm_func;
+
+typedef struct {
     int type;
     int value;
     char* name;
@@ -38,10 +45,21 @@ typedef struct {
     int errType;
 } slm_expr;
 
-int expr(slm_expr *e);
-
 #define TRY(func) func; if (e->errType) return 0;
 #define THROW(error) e->errType = error; return 0;
+
+int expr(slm_expr *e);
+int slm_abs(int x);
+int slm_max(int x, int y);
+int slm_min(int x, int y);
+
+const int FuncCount = 3;
+const int ArgMaxCount = 2;
+const slm_func FuncList[FuncCount] = {
+    {.name = "max", .argCount = 2, .func2 = &slm_max},
+    {.name = "min", .argCount = 2, .func2 = &slm_min},
+    {.name = "abs", .argCount = 1, .func1 = &slm_abs},
+};
 
 void next(slm_expr *e) {
     if (e->token.name) {
@@ -136,6 +154,21 @@ int number(slm_expr *e)
     return result;
 }
 
+int slm_abs(int x)
+{
+    return x < 0 ? -x : x;
+}
+
+int slm_max(int x, int y)
+{
+    return x >= y ? x : y;
+}
+
+int slm_min(int x, int y)
+{
+    return x <= y ? x : y;
+}
+
 int func(slm_expr *e)
 {
     /*
@@ -147,73 +180,46 @@ int func(slm_expr *e)
     if (e->token.type != SLM_EXPRESSION_TOKEN_ID || !e->token.name) {
         THROW(SLM_EXPRESSION_ERROR_EXPECT_ID);
     }
-    int result;
-    if (strcmp(e->token.name, "max") == 0) {
-        TRY(next(e));
-        // '('
-        if (e->token.type != SLM_EXPRESSION_TOKEN_OPEN) {
-            THROW(SLM_EXPRESSION_ERROR_EXPECT_OPEN_PARENTHESIS);
+    for (int i = 0; i < FuncCount; i++) {
+        slm_func funcItem = FuncList[i];
+        if (strcmp(e->token.name, funcItem.name) == 0) {
+            TRY(next(e));
+            // '('
+            if (e->token.type != SLM_EXPRESSION_TOKEN_OPEN) {
+                THROW(SLM_EXPRESSION_ERROR_EXPECT_OPEN_PARENTHESIS);
+            }
+            TRY(next(e));
+            // arg1
+            int args[ArgMaxCount];
+            args[0] = TRY(expr(e));
+            // arg2 ~ argN
+            for (int j = 1; j < funcItem.argCount; j++) {
+                // ','
+                if (e->token.type != SLM_EXPRESSION_TOKEN_COMMA) {
+                    THROW(SLM_EXPRESSION_ERROR_EXPECT_COMMA);
+                }
+                TRY(next(e));
+                // arg2 ~ argN
+                args[j] = TRY(expr(e));
+            }
+            // ')'
+            if (e->token.type != SLM_EXPRESSION_TOKEN_CLOSE) {
+                THROW(SLM_EXPRESSION_ERROR_EXPECT_CLOSE_PARENTHESIS);
+            }
+            TRY(next(e));
+            // result
+            switch (funcItem.argCount) {
+                case 1:
+                    return (*funcItem.func1)(args[0]);
+                    break;
+                case 2:
+                    return (*funcItem.func2)(args[0], args[1]);
+                    break;
+            }
+            break;
         }
-        TRY(next(e));
-        // arg1
-        int arg1 = TRY(expr(e));
-        // ','
-        if (e->token.type != SLM_EXPRESSION_TOKEN_COMMA) {
-            THROW(SLM_EXPRESSION_ERROR_EXPECT_COMMA);
-        }
-        TRY(next(e));
-        // arg2
-        int arg2 = TRY(expr(e));
-        // ')'
-        if (e->token.type != SLM_EXPRESSION_TOKEN_CLOSE) {
-            THROW(SLM_EXPRESSION_ERROR_EXPECT_CLOSE_PARENTHESIS);
-        }
-        TRY(next(e));
-        // result
-        result = arg1 >= arg2 ? arg1 : arg2;
-    } else if (strcmp(e->token.name, "min") == 0) {
-        TRY(next(e));
-        // '('
-        if (e->token.type != SLM_EXPRESSION_TOKEN_OPEN) {
-            THROW(SLM_EXPRESSION_ERROR_EXPECT_OPEN_PARENTHESIS);
-        }
-        TRY(next(e));
-        // arg1
-        int arg1 = TRY(expr(e));
-        // ','
-        if (e->token.type != SLM_EXPRESSION_TOKEN_COMMA) {
-            THROW(SLM_EXPRESSION_ERROR_EXPECT_COMMA);
-        }
-        TRY(next(e));
-        // arg2
-        int arg2 = TRY(expr(e));
-        // ')'
-        if (e->token.type != SLM_EXPRESSION_TOKEN_CLOSE) {
-            THROW(SLM_EXPRESSION_ERROR_EXPECT_CLOSE_PARENTHESIS);
-        }
-        TRY(next(e));
-        // result
-        result = arg1 <= arg2 ? arg1 : arg2;
-    } else if (strcmp(e->token.name, "abs") == 0) {
-        TRY(next(e));
-        // '('
-        if (e->token.type != SLM_EXPRESSION_TOKEN_OPEN) {
-            THROW(SLM_EXPRESSION_ERROR_EXPECT_OPEN_PARENTHESIS);
-        }
-        TRY(next(e));
-        // arg1
-        result = TRY(expr(e));
-        // ')'
-        if (e->token.type != SLM_EXPRESSION_TOKEN_CLOSE) {
-            THROW(SLM_EXPRESSION_ERROR_EXPECT_CLOSE_PARENTHESIS);
-        }
-        TRY(next(e));
-        // result
-        result = abs(result);
-    } else {
-        THROW(SLM_EXPRESSION_ERROR_UNKNOW_FUNCTION);
     }
-    return result;
+    THROW(SLM_EXPRESSION_ERROR_UNKNOW_FUNCTION);
 }
 
 int factor(slm_expr *e)
