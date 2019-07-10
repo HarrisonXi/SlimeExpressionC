@@ -309,6 +309,10 @@ int slm_eval(const char *expStr, int *errType)
             result = 0;
         }
     }
+    if (e.token.name) {
+        free(e.token.name);
+        e.token.name = NULL;
+    }
     if (errType) {
         *errType = e.errType;
     }
