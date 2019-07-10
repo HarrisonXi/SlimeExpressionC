@@ -25,8 +25,20 @@ void test(const char *expStr) {
         case SLM_EXPRESSION_ERROR_REMAINDER_BY_ZERO:
             printf("%s: error - remainder by zero\n", expStr);
             break;
+        case SLM_EXPRESSION_ERROR_EXPECT_OPEN_PARENTHESIS:
+            printf("%s: error - expect '('\n", expStr);
+            break;
         case SLM_EXPRESSION_ERROR_EXPECT_CLOSE_PARENTHESIS:
             printf("%s: error - expect ')'\n", expStr);
+            break;
+        case SLM_EXPRESSION_ERROR_EXPECT_ID:
+            printf("%s: error - expect ID\n", expStr);
+            break;
+        case SLM_EXPRESSION_ERROR_EXPECT_COMMA:
+            printf("%s: error - expect comma\n", expStr);
+            break;
+        case SLM_EXPRESSION_ERROR_UNKNOW_FUNCTION:
+            printf("%s: error - unknown function\n", expStr);
             break;
         case SLM_EXPRESSION_ERROR_EXPECT_END:
             printf("%s: error - expect end\n", expStr);
@@ -58,5 +70,9 @@ int main(int argc, const char * argv[]) {
     test("2 * -3");
     test("10--12");
     test("1?");
+    test("max(1, 2) * 2");
+    test("abs(-2) * 2");
+    test("max(2) * 2");
+    test("fun1(2) * 2");
     return 0;
 }

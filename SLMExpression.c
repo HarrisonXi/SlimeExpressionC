@@ -8,10 +8,13 @@
 
 #include "SLMExpression.h"
 #include <ctype.h>
+#include <string.h>
+#include <stdlib.h>
 
 enum {
     SLM_EXPRESSION_TOKEN_UNKNOWN = 0,
     SLM_EXPRESSION_TOKEN_DIGITS,
+    SLM_EXPRESSION_TOKEN_ID,
     SLM_EXPRESSION_TOKEN_ADD,
     SLM_EXPRESSION_TOKEN_SUB_OR_MINUS,
     SLM_EXPRESSION_TOKEN_MUL,
@@ -19,12 +22,14 @@ enum {
     SLM_EXPRESSION_TOKEN_MOD,
     SLM_EXPRESSION_TOKEN_OPEN,
     SLM_EXPRESSION_TOKEN_CLOSE,
+    SLM_EXPRESSION_TOKEN_COMMA,
     SLM_EXPRESSION_TOKEN_END
 };
 
 typedef struct {
     int type;
     int value;
+    char* name;
 } slm_token;
 
 typedef struct {
@@ -39,6 +44,10 @@ int expr(slm_expr *e);
 #define THROW(error) e->errType = error; return 0;
 
 void next(slm_expr *e) {
+    if (e->token.name) {
+        free(e->token.name);
+        e->token.name = NULL;
+    }
     while (isspace(*e->expStr)) {
         (e->expStr)++;
     }
@@ -52,6 +61,17 @@ void next(slm_expr *e) {
             e->token.value = e->token.value * 10 + (*e->expStr - '0');
             (e->expStr)++;
         }
+    } else if (isalpha(*e->expStr)) {
+        e->token.type = SLM_EXPRESSION_TOKEN_ID;
+        const char *start = e->expStr;
+        do {
+            (e->expStr)++;
+        } while (isalpha(*e->expStr) || isdigit(*e->expStr));
+        size_t length = e->expStr - start;
+        char *name = calloc(length + 1, sizeof(char));
+        strncpy(name, start, length);
+        name[length] = '\0';
+        e->token.name = name;
     } else {
         switch (*e->expStr) {
             case '+':
@@ -80,6 +100,10 @@ void next(slm_expr *e) {
                 break;
             case ')':
                 e->token.type = SLM_EXPRESSION_TOKEN_CLOSE;
+                (e->expStr)++;
+                break;
+            case ',':
+                e->token.type = SLM_EXPRESSION_TOKEN_COMMA;
                 (e->expStr)++;
                 break;
             default:
@@ -112,10 +136,91 @@ int number(slm_expr *e)
     return result;
 }
 
+int func(slm_expr *e)
+{
+    /*
+     func  = func1
+           | func2
+     func1 = id '(' expr ')'
+     func2 = id '(' expr ',' expr ')'
+     */
+    if (e->token.type != SLM_EXPRESSION_TOKEN_ID || !e->token.name) {
+        THROW(SLM_EXPRESSION_ERROR_EXPECT_ID);
+    }
+    int result;
+    if (strcmp(e->token.name, "max") == 0) {
+        TRY(next(e));
+        // '('
+        if (e->token.type != SLM_EXPRESSION_TOKEN_OPEN) {
+            THROW(SLM_EXPRESSION_ERROR_EXPECT_OPEN_PARENTHESIS);
+        }
+        TRY(next(e));
+        // arg1
+        int arg1 = TRY(expr(e));
+        // ','
+        if (e->token.type != SLM_EXPRESSION_TOKEN_COMMA) {
+            THROW(SLM_EXPRESSION_ERROR_EXPECT_COMMA);
+        }
+        TRY(next(e));
+        // arg2
+        int arg2 = TRY(expr(e));
+        // ')'
+        if (e->token.type != SLM_EXPRESSION_TOKEN_CLOSE) {
+            THROW(SLM_EXPRESSION_ERROR_EXPECT_CLOSE_PARENTHESIS);
+        }
+        TRY(next(e));
+        // result
+        result = arg1 >= arg2 ? arg1 : arg2;
+    } else if (strcmp(e->token.name, "min") == 0) {
+        TRY(next(e));
+        // '('
+        if (e->token.type != SLM_EXPRESSION_TOKEN_OPEN) {
+            THROW(SLM_EXPRESSION_ERROR_EXPECT_OPEN_PARENTHESIS);
+        }
+        TRY(next(e));
+        // arg1
+        int arg1 = TRY(expr(e));
+        // ','
+        if (e->token.type != SLM_EXPRESSION_TOKEN_COMMA) {
+            THROW(SLM_EXPRESSION_ERROR_EXPECT_COMMA);
+        }
+        TRY(next(e));
+        // arg2
+        int arg2 = TRY(expr(e));
+        // ')'
+        if (e->token.type != SLM_EXPRESSION_TOKEN_CLOSE) {
+            THROW(SLM_EXPRESSION_ERROR_EXPECT_CLOSE_PARENTHESIS);
+        }
+        TRY(next(e));
+        // result
+        result = arg1 <= arg2 ? arg1 : arg2;
+    } else if (strcmp(e->token.name, "abs") == 0) {
+        TRY(next(e));
+        // '('
+        if (e->token.type != SLM_EXPRESSION_TOKEN_OPEN) {
+            THROW(SLM_EXPRESSION_ERROR_EXPECT_OPEN_PARENTHESIS);
+        }
+        TRY(next(e));
+        // arg1
+        result = TRY(expr(e));
+        // ')'
+        if (e->token.type != SLM_EXPRESSION_TOKEN_CLOSE) {
+            THROW(SLM_EXPRESSION_ERROR_EXPECT_CLOSE_PARENTHESIS);
+        }
+        TRY(next(e));
+        // result
+        result = abs(result);
+    } else {
+        THROW(SLM_EXPRESSION_ERROR_UNKNOW_FUNCTION);
+    }
+    return result;
+}
+
 int factor(slm_expr *e)
 {
     /*
      factor = number
+            | func
             | '(' expr ')'
      */
     int result;
@@ -126,6 +231,8 @@ int factor(slm_expr *e)
             THROW(SLM_EXPRESSION_ERROR_EXPECT_CLOSE_PARENTHESIS);
         }
         TRY(next(e));
+    } else if (e->token.type == SLM_EXPRESSION_TOKEN_ID) {
+        result = TRY(func(e));
     } else {
         result = TRY(number(e));
     }
@@ -192,6 +299,7 @@ int slm_eval(const char *expStr, int *errType)
     slm_expr e;
     e.expStr = expStr;
     e.errType = SLM_EXPRESSION_ERROR_NONE;
+    e.token.name = NULL;
     int result = 0;
     next(&e);
     if (e.errType == 0) {
