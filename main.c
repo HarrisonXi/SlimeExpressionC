@@ -14,7 +14,7 @@ void test(const char *expStr) {
     int result = slm_eval(expStr, &errType);
     switch (errType) {
         case SLM_EXPRESSION_ERROR_NONE:
-            printf("%s=%d\n", expStr, result);
+            printf("%s = %d\n", expStr, result);
             break;
         case SLM_EXPRESSION_ERROR_EXPECT_DIGIT:
             printf("%s: error - expect digit\n", expStr);
@@ -31,6 +31,9 @@ void test(const char *expStr) {
         case SLM_EXPRESSION_ERROR_EXPECT_END:
             printf("%s: error - expect end\n", expStr);
             break;
+        case SLM_EXPRESSION_ERROR_UNKNOW_TOKEN:
+            printf("%s: error - unknown token\n", expStr);
+            break;
         default:
             printf("%s: unknown error\n", expStr);
             break;
@@ -38,21 +41,22 @@ void test(const char *expStr) {
 }
 
 int main(int argc, const char * argv[]) {
-    test("1+2");
-    test("3-2+1");
-    test("2*3");
-    test("3+4/2-1");
-    test("1*2+3%2");
-    test("2*2*2-3");
-    test("(2+4)/3");
-    test("(1+2)*(2+2)");
-    test("(1+3*2)%3");
-    test("1+?");
-    test("1/0");
-    test("1%0");
-    test("(2+3*4");
-    test("1+2?");
-    test("2*-3");
-    test("1--2");
+    test("1    +    2");
+    test("3-2+10");
+    test("2 *\t\t3");
+    test("3+4/2-10");
+    test("1 * 2 + 3 % 2");
+    test("2*2*2-30");
+    test("(2 + 4) / 3");
+    test("(10+2)*(20+2)");
+    test("(1 + 3 * 2) % 3");
+    test("10+)");
+    test("1 / 0");
+    test("10%0");
+    test("(2 + 3 * 4");
+    test("10+2)");
+    test("2 * -3");
+    test("10--12");
+    test("1?");
     return 0;
 }
